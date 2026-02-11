@@ -53,10 +53,11 @@ def test_looped_output_structure():
     
     import subprocess
     
-    # Create a test output - press Enter to skip second file
+    # Create a test output
+    # Input order: printer_mode, file_selection, skip_second_file, loop_count
     result = subprocess.run(
         ['python3', 'printlooper.py'],
-        input='1\n1\n\n3\n',  # Added empty line to skip second file
+        input='1\n1\n\n3\n',  # Mode 1, File 1, Skip second, 3 loops
         text=True,
         capture_output=True
     )
@@ -96,7 +97,8 @@ def test_printer_modes():
     
     import subprocess
     
-    # Test Centauri Carbon (mode 1) - skip second file
+    # Test Centauri Carbon (mode 1)
+    # Input: mode, file, skip_second, loops
     subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n2\n', text=True, capture_output=True)
     output1 = "test_print_looped_2x.gcode"
     assert Path(output1).exists(), "Centauri Carbon output should exist"
@@ -110,7 +112,8 @@ def test_printer_modes():
     os.remove(output1)
     print("✓ Centauri Carbon mode working")
     
-    # Test Ender 3 V3 SE (mode 2) - skip second file
+    # Test Ender 3 V3 SE (mode 2)
+    # Input: mode, file, skip_second, loops
     subprocess.run(['python3', 'printlooper.py'], input='2\n1\n\n2\n', text=True, capture_output=True)
     output2 = "test_print_looped_2x.gcode"
     assert Path(output2).exists(), "Ender 3 V3 SE output should exist"
@@ -131,7 +134,7 @@ def test_single_loop():
     
     import subprocess
     
-    # Skip second file
+    # Input: mode, file, skip_second, loops
     subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n1\n', text=True, capture_output=True)
     output = "test_print_looped_1x.gcode"
     assert Path(output).exists(), "Single loop output should exist"
@@ -161,6 +164,7 @@ def test_alternating_files():
     import subprocess
     
     # Test with 4 loops alternating between two files
+    # Input: mode, file1, file2, loops
     subprocess.run(['python3', 'printlooper.py'], input='1\n1\n2\n4\n', text=True, capture_output=True)
     output = "test_print_test_print2_alternating_4x.gcode"
     assert Path(output).exists(), "Alternating output should exist"
@@ -219,7 +223,7 @@ def test_skip_second_file():
     
     import subprocess
     
-    # Press Enter to skip second file
+    # Input: mode, file, skip_second (empty), loops
     subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n2\n', text=True, capture_output=True)
     output = "test_print_looped_2x.gcode"
     assert Path(output).exists(), "Single file output should exist"

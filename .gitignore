@@ -19,6 +19,7 @@ ENV/
 
 # Generated looped GCODE files
 *_looped_*.gcode
+*_alternating_*.gcode
 
 # OS
 .DS_Store

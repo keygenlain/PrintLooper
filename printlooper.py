@@ -173,6 +173,7 @@ class PrintLooper:
         print("\n" + "-"*50)
         print("Configure loop count")
         print("-"*50)
+        # Limit is 99 to keep output manageable and avoid extremely long files
         
         while True:
             try:
