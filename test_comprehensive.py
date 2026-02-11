@@ -53,10 +53,10 @@ def test_looped_output_structure():
     
     import subprocess
     
-    # Create a test output
+    # Create a test output - press Enter to skip second file
     result = subprocess.run(
         ['python3', 'printlooper.py'],
-        input='1\n1\n3\n',
+        input='1\n1\n\n3\n',  # Added empty line to skip second file
         text=True,
         capture_output=True
     )
@@ -96,8 +96,8 @@ def test_printer_modes():
     
     import subprocess
     
-    # Test Centauri Carbon (mode 1)
-    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n2\n', text=True, capture_output=True)
+    # Test Centauri Carbon (mode 1) - skip second file
+    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n2\n', text=True, capture_output=True)
     output1 = "test_print_looped_2x.gcode"
     assert Path(output1).exists(), "Centauri Carbon output should exist"
     
@@ -110,8 +110,8 @@ def test_printer_modes():
     os.remove(output1)
     print("✓ Centauri Carbon mode working")
     
-    # Test Ender 3 V3 SE (mode 2)
-    subprocess.run(['python3', 'printlooper.py'], input='2\n1\n2\n', text=True, capture_output=True)
+    # Test Ender 3 V3 SE (mode 2) - skip second file
+    subprocess.run(['python3', 'printlooper.py'], input='2\n1\n\n2\n', text=True, capture_output=True)
     output2 = "test_print_looped_2x.gcode"
     assert Path(output2).exists(), "Ender 3 V3 SE output should exist"
     
@@ -131,7 +131,8 @@ def test_single_loop():
     
     import subprocess
     
-    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n1\n', text=True, capture_output=True)
+    # Skip second file
+    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n1\n', text=True, capture_output=True)
     output = "test_print_looped_1x.gcode"
     assert Path(output).exists(), "Single loop output should exist"
     
@@ -153,6 +154,88 @@ def test_single_loop():
     os.remove(output)
 
 
+def test_alternating_files():
+    """Test alternating between two GCODE files"""
+    print("\nTest 6: Alternating files test...")
+    
+    import subprocess
+    
+    # Test with 4 loops alternating between two files
+    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n2\n4\n', text=True, capture_output=True)
+    output = "test_print_test_print2_alternating_4x.gcode"
+    assert Path(output).exists(), "Alternating output should exist"
+    
+    with open(output, 'r') as f:
+        content = f.read()
+    
+    # Check header mentions both files
+    assert "test_print.gcode" in content, "Should mention first file"
+    assert "test_print2.gcode" in content, "Should mention second file"
+    assert "Alternating" in content, "Should mention alternating mode"
+    
+    # Check that files alternate correctly
+    # Loop 1 should use test_print.gcode (odd)
+    # Loop 2 should use test_print2.gcode (even)
+    # Loop 3 should use test_print.gcode (odd)
+    # Loop 4 should use test_print2.gcode (even)
+    lines = content.split('\n')
+    
+    loop1_file = None
+    loop2_file = None
+    loop3_file = None
+    loop4_file = None
+    
+    for i, line in enumerate(lines):
+        if 'LOOP 1 of 4' in line and i+1 < len(lines):
+            if 'Using:' in lines[i+1]:
+                loop1_file = lines[i+1]
+        if 'LOOP 2 of 4' in line and i+1 < len(lines):
+            if 'Using:' in lines[i+1]:
+                loop2_file = lines[i+1]
+        if 'LOOP 3 of 4' in line and i+1 < len(lines):
+            if 'Using:' in lines[i+1]:
+                loop3_file = lines[i+1]
+        if 'LOOP 4 of 4' in line and i+1 < len(lines):
+            if 'Using:' in lines[i+1]:
+                loop4_file = lines[i+1]
+    
+    assert loop1_file and 'test_print.gcode' in loop1_file, "Loop 1 should use file 1"
+    assert loop2_file and 'test_print2.gcode' in loop2_file, "Loop 2 should use file 2"
+    assert loop3_file and 'test_print.gcode' in loop3_file, "Loop 3 should use file 1"
+    assert loop4_file and 'test_print2.gcode' in loop4_file, "Loop 4 should use file 2"
+    
+    print(f"✓ Alternating pattern correct:")
+    print(f"  - Loop 1: test_print.gcode")
+    print(f"  - Loop 2: test_print2.gcode")
+    print(f"  - Loop 3: test_print.gcode")
+    print(f"  - Loop 4: test_print2.gcode")
+    
+    os.remove(output)
+
+
+def test_skip_second_file():
+    """Test skipping second file selection"""
+    print("\nTest 7: Skip second file test...")
+    
+    import subprocess
+    
+    # Press Enter to skip second file
+    subprocess.run(['python3', 'printlooper.py'], input='1\n1\n\n2\n', text=True, capture_output=True)
+    output = "test_print_looped_2x.gcode"
+    assert Path(output).exists(), "Single file output should exist"
+    
+    with open(output, 'r') as f:
+        content = f.read()
+    
+    # Should not mention alternating or second file
+    assert "test_print2.gcode" not in content, "Should not mention second file"
+    assert "Alternating" not in content, "Should not mention alternating"
+    
+    print(f"✓ Skipping second file works correctly")
+    
+    os.remove(output)
+
+
 def main():
     """Run all tests"""
     # Change to script's directory to ensure tests work regardless of where they're run from
@@ -169,6 +252,8 @@ def main():
         test_looped_output_structure()
         test_printer_modes()
         test_single_loop()
+        test_alternating_files()
+        test_skip_second_file()
         
         print("\n" + "="*60)
         print("✓ ALL TESTS PASSED!")

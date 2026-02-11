@@ -6,6 +6,7 @@ Loop your GCODEs! Automate multiple 3D prints by modifying GCODE files to push p
 
 - 🖨️ **Multi-Printer Support**: Centauri Carbon and Ender 3 V3 SE
 - 🔄 **Automated Looping**: Configure 1-99 print loops
+- 🔀 **Alternating Mode**: Optionally alternate between two different GCODE files
 - 📄 **Smart GCODE Detection**: Automatically finds GCODE files in the current directory
 - 🔧 **Printer-Specific Sequences**: Custom bed-clearing logic for each printer
 - ✅ **Easy to Use**: Interactive command-line interface
@@ -40,21 +41,25 @@ No installation required! Just download `printlooper.py` and place it in the sam
 
 3. Follow the interactive prompts:
    - **Select printer mode**: Choose between Centauri Carbon (1) or Ender 3 V3 SE (2)
-   - **Select GCODE file**: Pick from detected files in the current directory
+   - **Select first GCODE file**: Pick from detected files in the current directory
+   - **Select second GCODE file (optional)**: Choose a second file to alternate, or press Enter to skip
    - **Configure loop count**: Enter how many times to loop (1-99)
 
-4. The script will create a new file named `original_filename_looped_Nx.gcode` where N is the loop count
+4. The script will create a new file:
+   - Single file mode: `original_filename_looped_Nx.gcode` where N is the loop count
+   - Alternating mode: `file1_file2_alternating_Nx.gcode` where N is the loop count
 
 ## How It Works
 
-PrintLooper modifies your GCODE file by:
+PrintLooper modifies your GCODE file(s) by:
 
 1. **Analyzing** the original GCODE to identify the end sequence
 2. **Wrapping** the print sequence in a loop structure
 3. **Inserting** printer-specific bed-clearing sequences between loops
 4. **Preserving** the final end sequence after all loops complete
+5. **Alternating** (optional): Switches between two different GCODE files each loop
 
-### Example Output Structure
+### Single File Mode Output Structure
 
 ```gcode
 ; ================ LOOP 1 of 3 ================
@@ -67,6 +72,31 @@ PrintLooper modifies your GCODE file by:
 [Printer-specific bed clearing commands]
 ; ================ LOOP 3 of 3 ================
 [Your original print GCODE]
+; ================ FINAL END SEQUENCE ================
+[Original end GCODE - motors off, etc.]
+```
+
+### Alternating Mode Output Structure
+
+```gcode
+; ================ LOOP 1 of 4 ================
+; Using: model1.gcode
+[First file GCODE]
+; === Push-Off Sequence ===
+[Printer-specific bed clearing commands]
+; ================ LOOP 2 of 4 ================
+; Using: model2.gcode
+[Second file GCODE]
+; === Push-Off Sequence ===
+[Printer-specific bed clearing commands]
+; ================ LOOP 3 of 4 ================
+; Using: model1.gcode
+[First file GCODE - alternating back]
+; === Push-Off Sequence ===
+[Printer-specific bed clearing commands]
+; ================ LOOP 4 of 4 ================
+; Using: model2.gcode
+[Second file GCODE]
 ; ================ FINAL END SEQUENCE ================
 [Original end GCODE - motors off, etc.]
 ```
@@ -95,6 +125,20 @@ Available GCODE files:
 Select a file (1-2): 1
 
 --------------------------------------------------
+Optional: Select a second GCODE file to alternate
+--------------------------------------------------
+Leave blank to loop only the first file, or select
+a second file to alternate (File1 → File2 → File1 → File2...)
+
+Available files:
+  1. my_model.gcode (245.3 KB) [SELECTED AS FILE 1]
+  2. test_print.gcode (1.0 KB)
+
+Select second file (1-2, or press Enter to skip): 
+
+✓ No second file selected. Will loop single file.
+
+--------------------------------------------------
 Configure loop count
 --------------------------------------------------
 How many times should the print loop? (1-99): 5
@@ -103,7 +147,7 @@ How many times should the print loop? (1-99): 5
 Processing GCODE...
 ==================================================
 ✓ Read 12543 lines from my_model.gcode
-✓ End GCODE sequence starts at line 12520
+✓ File 1 end GCODE sequence starts at line 12520
 
 ✓ Successfully created looped GCODE!
 ✓ Output file: my_model_looped_5x.gcode
@@ -119,10 +163,26 @@ Your looped GCODE file has been created:
 Configuration:
   🖨️  Printer: Centauri Carbon
   🔄 Loops: 5
-  📁 Original: my_model.gcode
+  📁 File 1: my_model.gcode
 
 You can now upload this file to your printer!
 ==================================================
+```
+
+## Alternating Mode Example
+
+Use alternating mode to print two different models in sequence (e.g., printing calibration cubes and benchy boats):
+
+```bash
+$ python3 printlooper.py
+
+# Select Centauri Carbon
+# Select cube.gcode as first file
+# Select benchy.gcode as second file
+# Enter 6 loops
+
+# Output: cube_benchy_alternating_6x.gcode
+# Result: Cube → Benchy → Cube → Benchy → Cube → Benchy
 ```
 
 ## Safety Considerations
@@ -133,6 +193,7 @@ You can now upload this file to your printer!
 - Monitor the first few loops to ensure proper bed clearing
 - Make sure your printer has enough filament for all loops
 - Check that bed adhesion is appropriate (not too strong)
+- In alternating mode, ensure both models have similar print times and bed adhesion requirements
 
 ## Troubleshooting
 
