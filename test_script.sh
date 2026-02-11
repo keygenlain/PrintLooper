@@ -1,7 +1,9 @@
 #!/bin/bash
 # Automated test script for printlooper.py
 
-cd /home/runner/work/PrintLooper/PrintLooper
+# Change to script's directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
 # Test 1: Centauri Carbon with 3 loops
 echo "Testing Centauri Carbon with 3 loops..."

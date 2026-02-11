@@ -13,7 +13,7 @@ def test_gcode_file_detection():
     print("Test 1: GCODE file detection...")
     
     # Import the module
-    sys.path.insert(0, '/home/runner/work/PrintLooper/PrintLooper')
+    import printlooper
     from printlooper import PrintLooper
     
     looper = PrintLooper()
@@ -28,7 +28,6 @@ def test_end_gcode_detection():
     """Test end GCODE detection algorithm"""
     print("\nTest 2: End GCODE detection...")
     
-    sys.path.insert(0, '/home/runner/work/PrintLooper/PrintLooper')
     from printlooper import PrintLooper
     
     looper = PrintLooper()
@@ -156,7 +155,9 @@ def test_single_loop():
 
 def main():
     """Run all tests"""
-    os.chdir('/home/runner/work/PrintLooper/PrintLooper')
+    # Change to script's directory to ensure tests work regardless of where they're run from
+    script_dir = Path(__file__).parent.absolute()
+    os.chdir(script_dir)
     
     print("="*60)
     print("PrintLooper Test Suite")
