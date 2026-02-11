@@ -22,6 +22,8 @@ class PrintLooper:
     PUSH_OFF_SEQUENCES = {
         "Centauri Carbon": [
             "; === Centauri Carbon Push-Off Sequence ===",
+            "M140 S20               ; Cool bed to 20C for easy removal",
+            "M190 S20               ; Wait for bed to cool to 20C",
             "G91                     ; Relative positioning",
             "G1 Z10 F3000           ; Raise Z by 10mm",
             "G90                     ; Absolute positioning",
@@ -35,6 +37,8 @@ class PrintLooper:
         ],
         "Ender 3 V3 SE": [
             "; === Ender 3 V3 SE Push-Off Sequence ===",
+            "M140 S20               ; Cool bed to 20C for easy removal",
+            "M190 S20               ; Wait for bed to cool to 20C",
             "G91                     ; Relative positioning",
             "G1 Z10 F1200           ; Raise Z by 10mm",
             "G90                     ; Absolute positioning",

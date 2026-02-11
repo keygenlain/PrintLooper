@@ -55,20 +55,34 @@ PrintLooper modifies your GCODE file(s) by:
 
 1. **Analyzing** the original GCODE to identify the end sequence
 2. **Wrapping** the print sequence in a loop structure
-3. **Inserting** printer-specific bed-clearing sequences between loops
-4. **Preserving** the final end sequence after all loops complete
-5. **Alternating** (optional): Switches between two different GCODE files each loop
+3. **Cooling bed to 20°C** before pushing off prints for easy removal
+4. **Inserting** printer-specific bed-clearing sequences between loops
+5. **Reheating bed** automatically when the next loop starts
+6. **Preserving** the final end sequence after all loops complete
+7. **Alternating** (optional): Switches between two different GCODE files each loop
+
+### Bed Temperature Management
+
+Between each print loop:
+- Bed cools to **20°C** (M140 S20 + M190 S20) for easy print removal
+- Print is pushed off the bed
+- Bed reheats to original temperature from the GCODE file start sequence
+- Next print begins
 
 ### Single File Mode Output Structure
 
 ```gcode
 ; ================ LOOP 1 of 3 ================
-[Your original print GCODE]
+[Your original print GCODE with bed heating]
 ; === Push-Off Sequence ===
+M140 S20               ; Cool bed to 20C for easy removal
+M190 S20               ; Wait for bed to cool to 20C
 [Printer-specific bed clearing commands]
 ; ================ LOOP 2 of 3 ================
-[Your original print GCODE]
+[Your original print GCODE - bed reheats here]
 ; === Push-Off Sequence ===
+M140 S20               ; Cool bed to 20C for easy removal
+M190 S20               ; Wait for bed to cool to 20C
 [Printer-specific bed clearing commands]
 ; ================ LOOP 3 of 3 ================
 [Your original print GCODE]
@@ -81,22 +95,28 @@ PrintLooper modifies your GCODE file(s) by:
 ```gcode
 ; ================ LOOP 1 of 4 ================
 ; Using: model1.gcode
-[First file GCODE]
+[First file GCODE with bed heating]
 ; === Push-Off Sequence ===
+M140 S20               ; Cool bed to 20C
+M190 S20               ; Wait for bed to cool
 [Printer-specific bed clearing commands]
 ; ================ LOOP 2 of 4 ================
 ; Using: model2.gcode
-[Second file GCODE]
+[Second file GCODE - bed reheats here]
 ; === Push-Off Sequence ===
+M140 S20               ; Cool bed to 20C
+M190 S20               ; Wait for bed to cool
 [Printer-specific bed clearing commands]
 ; ================ LOOP 3 of 4 ================
 ; Using: model1.gcode
-[First file GCODE - alternating back]
+[First file GCODE - alternating back, bed reheats]
 ; === Push-Off Sequence ===
+M140 S20               ; Cool bed to 20C
+M190 S20               ; Wait for bed to cool
 [Printer-specific bed clearing commands]
 ; ================ LOOP 4 of 4 ================
 ; Using: model2.gcode
-[Second file GCODE]
+[Second file GCODE - bed reheats]
 ; ================ FINAL END SEQUENCE ================
 [Original end GCODE - motors off, etc.]
 ```
