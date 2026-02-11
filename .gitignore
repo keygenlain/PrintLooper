@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Generated looped GCODE files
+*_looped_*.gcode
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary test files
+/tmp/
