@@ -52,6 +52,7 @@ class PrintLooper:
     def __init__(self):
         self.printer_mode: Optional[str] = None
         self.gcode_file: Optional[str] = None
+        self.gcode_file2: Optional[str] = None  # Second file for alternating
         self.loop_count: int = 1
     
     def find_gcode_files(self) -> List[str]:
@@ -118,6 +119,55 @@ class PrintLooper:
             except ValueError:
                 print("Invalid input. Please enter a number.")
     
+    def select_second_gcode_file(self) -> bool:
+        """Prompt user to optionally select a second GCODE file for alternating"""
+        print("\n" + "-"*50)
+        print("Optional: Select a second GCODE file to alternate")
+        print("-"*50)
+        print("Leave blank to loop only the first file, or select")
+        print("a second file to alternate (File1 → File2 → File1 → File2...)")
+        print()
+        
+        gcode_files = self.find_gcode_files()
+        
+        if len(gcode_files) < 2:
+            print("Only one GCODE file available. Skipping second file selection.")
+            return True
+        
+        print("Available files:")
+        for idx, filename in enumerate(gcode_files, 1):
+            if filename == self.gcode_file:
+                file_size = Path(filename).stat().st_size / 1024
+                print(f"  {idx}. {filename} ({file_size:.1f} KB) [SELECTED AS FILE 1]")
+            else:
+                file_size = Path(filename).stat().st_size / 1024
+                print(f"  {idx}. {filename} ({file_size:.1f} KB)")
+        print()
+        
+        while True:
+            try:
+                choice = input(f"Select second file (1-{len(gcode_files)}, or press Enter to skip): ").strip()
+                
+                if not choice:
+                    print("\n✓ No second file selected. Will loop single file.")
+                    self.gcode_file2 = None
+                    return True
+                
+                idx = int(choice) - 1
+                if 0 <= idx < len(gcode_files):
+                    selected_file = gcode_files[idx]
+                    if selected_file == self.gcode_file:
+                        print("Warning: You selected the same file. Please select a different file or press Enter to skip.")
+                        continue
+                    self.gcode_file2 = selected_file
+                    print(f"\n✓ Second file selected: {self.gcode_file2}")
+                    print("Files will alternate in the loop.")
+                    return True
+                else:
+                    print(f"Invalid choice. Please enter a number between 1 and {len(gcode_files)}.")
+            except ValueError:
+                print("Invalid input. Please enter a number or press Enter to skip.")
+    
     def configure_loop_count(self) -> bool:
         """Prompt user for number of loops"""
         print("\n" + "-"*50)
@@ -175,7 +225,7 @@ class PrintLooper:
         return max(0, len(lines) - 20)
     
     def create_looped_gcode(self) -> Optional[str]:
-        """Create a looped version of the GCODE file"""
+        """Create a looped version of the GCODE file(s)"""
         if not self.gcode_file or not self.printer_mode:
             print("\n✗ Configuration incomplete!")
             return None
@@ -184,24 +234,43 @@ class PrintLooper:
         print("Processing GCODE...")
         print("="*50)
         
-        # Read original GCODE
+        # Read first GCODE file
         original_lines = self.read_gcode(self.gcode_file)
         if not original_lines:
             return None
         
         print(f"✓ Read {len(original_lines)} lines from {self.gcode_file}")
         
-        # Find where end GCODE starts
+        # Find where end GCODE starts for first file
         end_gcode_start = self.find_end_gcode_start(original_lines)
-        print(f"✓ End GCODE sequence starts at line {end_gcode_start + 1}")
+        print(f"✓ File 1 end GCODE sequence starts at line {end_gcode_start + 1}")
         
         # Split into main print and end GCODE
         main_gcode = original_lines[:end_gcode_start]
         end_gcode = original_lines[end_gcode_start:]
         
+        # Handle second file if present
+        main_gcode2 = None
+        if self.gcode_file2:
+            original_lines2 = self.read_gcode(self.gcode_file2)
+            if not original_lines2:
+                return None
+            
+            print(f"✓ Read {len(original_lines2)} lines from {self.gcode_file2}")
+            
+            end_gcode_start2 = self.find_end_gcode_start(original_lines2)
+            print(f"✓ File 2 end GCODE sequence starts at line {end_gcode_start2 + 1}")
+            
+            main_gcode2 = original_lines2[:end_gcode_start2]
+            # We'll use the end_gcode from the first file as the final end
+        
         # Create output filename
         base_name = Path(self.gcode_file).stem
-        output_file = f"{base_name}_looped_{self.loop_count}x.gcode"
+        if self.gcode_file2:
+            base_name2 = Path(self.gcode_file2).stem
+            output_file = f"{base_name}_{base_name2}_alternating_{self.loop_count}x.gcode"
+        else:
+            output_file = f"{base_name}_looped_{self.loop_count}x.gcode"
         
         # Build looped GCODE
         looped_lines = []
@@ -209,7 +278,10 @@ class PrintLooper:
         # Add header comment
         looped_lines.append("; ================================================================\n")
         looped_lines.append(f"; PrintLooper - Looped GCODE for {self.printer_mode}\n")
-        looped_lines.append(f"; Original file: {self.gcode_file}\n")
+        looped_lines.append(f"; Primary file: {self.gcode_file}\n")
+        if self.gcode_file2:
+            looped_lines.append(f"; Secondary file: {self.gcode_file2}\n")
+            looped_lines.append("; Mode: Alternating between files\n")
         looped_lines.append(f"; Loop count: {self.loop_count}\n")
         looped_lines.append("; ================================================================\n")
         looped_lines.append("\n")
@@ -219,11 +291,26 @@ class PrintLooper:
         
         # Add each loop
         for loop_num in range(1, self.loop_count + 1):
-            looped_lines.append(f"; ================ LOOP {loop_num} of {self.loop_count} ================\n")
-            looped_lines.append("\n")
+            # Determine which file to use for this loop
+            if self.gcode_file2:
+                # Alternate between files: odd loops use file1, even loops use file2
+                if loop_num % 2 == 1:  # Odd loop number
+                    current_gcode = main_gcode
+                    current_file = self.gcode_file
+                else:  # Even loop number
+                    current_gcode = main_gcode2
+                    current_file = self.gcode_file2
+                
+                looped_lines.append(f"; ================ LOOP {loop_num} of {self.loop_count} ================\n")
+                looped_lines.append(f"; Using: {current_file}\n")
+                looped_lines.append("\n")
+            else:
+                current_gcode = main_gcode
+                looped_lines.append(f"; ================ LOOP {loop_num} of {self.loop_count} ================\n")
+                looped_lines.append("\n")
             
             # Add main print GCODE
-            looped_lines.extend(main_gcode)
+            looped_lines.extend(current_gcode)
             
             # Add push-off sequence (except after the last loop)
             if loop_num < self.loop_count:
@@ -257,6 +344,10 @@ class PrintLooper:
             if not self.select_gcode_file():
                 return
             
+            # Step 2b: Select optional second GCODE file
+            if not self.select_second_gcode_file():
+                return
+            
             # Step 3: Configure loop count
             if not self.configure_loop_count():
                 return
@@ -273,7 +364,10 @@ class PrintLooper:
                 print(f"\nConfiguration:")
                 print(f"  🖨️  Printer: {self.printer_mode}")
                 print(f"  🔄 Loops: {self.loop_count}")
-                print(f"  📁 Original: {self.gcode_file}")
+                print(f"  📁 File 1: {self.gcode_file}")
+                if self.gcode_file2:
+                    print(f"  📁 File 2: {self.gcode_file2}")
+                    print(f"  🔄 Mode: Alternating")
                 print("\nYou can now upload this file to your printer!")
                 print("="*50)
             else:
